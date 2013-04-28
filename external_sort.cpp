@@ -132,7 +132,7 @@ void merge_one_pass(std::vector<std::string> chunks, int fd_output,
   std::vector<size_t> max_idx(chunks.size(), buffer_len);
   std::vector<size_t> idx(chunks.size(), 0);
 
-  for (int i = 0; i != chunks.size(); ++i)
+  for (size_t i = 0; i != chunks.size(); ++i)
     fill_buffer(fds[i], in_buffers[i], buffer_size, max_idx[i], idx[i]);
 
   std::priority_queue<std::pair<uint64_t, size_t>,
@@ -165,11 +165,6 @@ void merge_one_pass(std::vector<std::string> chunks, int fd_output,
   flush_buffer(fd_output, out_buffer, out_idx);
   delete_temps(chunks);
 }
-
-///
-/// Fill the buffer with the content of the input file.
-/// Reset the state of the buffer after reading.
-///
 
 ///
 /// Fill the buffer with the content from the input file.
