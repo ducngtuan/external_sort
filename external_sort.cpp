@@ -20,11 +20,10 @@
   #include <linux/falloc.h>
 #endif
 
-// Maximum numbers of chunks to merge in one pass
-const unsigned long kMaxNumberOfChunksForOnePass = 50;
-
-// Custom compare class to use in the priority queue.
-// This compare make sure the queue in reverse order (min element at top).
+///
+/// Custom compare class to use in the priority queue. This implementation
+/// makes sure the queue in reverse order (min element at top).
+///
 class PairCompare {
 public:
   bool operator()(const std::pair<uint64_t, size_t>& lhs,
@@ -45,6 +44,12 @@ void merge_one_pass(const std::vector<std::string>& chunks,
                     const int fd_output,
                     const unsigned long mem_size);
 
+void merge_multi_pass(std::vector<std::string>& chunks,
+                      const int fd_output,
+                      size_t chunk_size,
+                      const unsigned long mem_size,
+                      const int max_chunk_num = 25);
+
 void fill_buffer(const int fd, const std::unique_ptr<uint64_t[]> &buffer,
                  const size_t buffer_size, size_t &max_idx, size_t &idx);
 
@@ -62,11 +67,11 @@ void flush_buffer(const int fd, const std::unique_ptr<uint64_t[]> &buffer,
 void externalSort(int fdInput, unsigned long size,
                   int fdOutput, unsigned long memSize) {
   auto chunk_len = memSize / sizeof(uint64_t);
-  auto fd_temps = split_file(fdInput, chunk_len);
+  auto chunks = split_file(fdInput, chunk_len);
 
   preallocate_file(fdOutput, 0, size * sizeof(uint64_t));
 
-  merge_one_pass(fd_temps, fdOutput, memSize);
+  merge_multi_pass(chunks, fdOutput, chunk_len * sizeof(uint64_t), memSize);
 }
 
 ///
@@ -106,6 +111,54 @@ std::vector<std::string> split_file(const int fd_input,
   }
 
   return temp_files;
+}
+
+///
+/// Perform multi-pass k-way merge. For each pass only merge `max_chunk_num`
+/// chunks at once.
+///
+/// \param chunks     list of filenames of the chunks
+/// \param fd_output  file descriptor of the final output file
+/// \param chunk_size size of each chunk in bytes (to pre-allocate)
+/// \param mem_size   size of main memory buffer
+/// \param max_chunk_num number of chunks to merge at once, default 25
+///
+void merge_multi_pass(std::vector<std::string>& chunks,
+                      const int fd_output,
+                      size_t chunk_size,
+                      const unsigned long mem_size,
+                      const int max_chunk_num) {
+  while (!chunks.empty()) {
+    // if all chunks fit in
+    if (chunks.size() <= max_chunk_num) {
+      merge_one_pass(chunks, fd_output, mem_size);
+      return;
+    }
+
+    std::vector<std::string> new_chunks;
+    auto it = chunks.begin();
+    while (it != chunks.end()) {
+      auto ite = it + max_chunk_num;
+      if (ite > chunks.end()) ite = chunks.end();
+      std::vector<std::string> sub_chunks(it, ite);
+
+      // write buffer to temporal output file
+      char temp[] = "esort.tmp.XXXXXX";
+      int fd_temp = mkstemp(temp);
+      if (fd_temp == -1) {
+        std::cerr << "Error: cannot creating temporary file - "
+                  << strerror(errno) << std::endl;
+        break;
+      }
+      preallocate_file(fd_temp, 0, chunk_size * (ite - it));
+      merge_one_pass(sub_chunks, fd_temp, mem_size);
+      new_chunks.push_back(std::string(temp));
+      it = ite;
+    }
+
+    chunk_size *= max_chunk_num;
+    chunks = std::move(new_chunks);
+  }
 }
 
 ///

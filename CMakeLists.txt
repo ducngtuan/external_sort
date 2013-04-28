@@ -4,7 +4,6 @@ project(external_sort)
 ##################
 # Compiler setting
 ##################
-
 # Use C++ 11
 set(CMAKE_CXX_FLAGS "-Wall -g -std=c++11")
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
