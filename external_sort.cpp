@@ -38,10 +38,12 @@ bool preallocate_file(int fd, off_t offset = 0, off_t len = 0);
 
 void delete_temps(const std::vector<std::string>& tempfiles);
 
-std::vector<std::string> split_file(int fd, unsigned long chunk_size);
+std::vector<std::string> split_file(const int fd_input,
+                                    const unsigned long chunk_size);
 
-void merge_one_pass(std::vector<std::string> chunks, int fd_output,
-                    unsigned long mem_size);
+void merge_one_pass(const std::vector<std::string>& chunks,
+                    const int fd_output,
+                    const unsigned long mem_size);
 
 void fill_buffer(const int fd, const std::unique_ptr<uint64_t[]> &buffer,
                  const size_t buffer_size, size_t &max_idx, size_t &idx);
@@ -74,7 +76,8 @@ void externalSort(int fdInput, unsigned long size,
 /// \param chunk_len number of integers in one chunk
 /// \return list of all the chunk files
 ///
-std::vector<std::string> split_file(int fd_input, unsigned long chunk_len) {
+std::vector<std::string> split_file(const int fd_input,
+                                    const unsigned long chunk_len) {
   auto buffer      = std::unique_ptr<uint64_t[]>(new uint64_t[chunk_len]);
   auto buffer_size = chunk_len * sizeof(uint64_t);
   auto temp_files  = std::vector<std::string>();
@@ -113,8 +116,9 @@ std::vector<std::string> split_file(int fd_input, unsigned long chunk_len) {
 /// \param chunk_size size of each chunk
 /// \param mem_size   size of main memory
 ///
-void merge_one_pass(std::vector<std::string> chunks, int fd_output,
-                    unsigned long mem_size) {
+void merge_one_pass(const std::vector<std::string>& chunks,
+                    const int fd_output,
+                    const unsigned long mem_size) {
   // prepare the input and output buffers
   auto buffer_len = mem_size / (chunks.size() + 1) / sizeof(uint64_t);
   auto buffer_size = buffer_len * sizeof(uint64_t);
@@ -163,6 +167,8 @@ void merge_one_pass(std::vector<std::string> chunks, int fd_output,
     queue.push(std::make_pair(in_buffers[i][idx[i]++], i));
   }
   flush_buffer(fd_output, out_buffer, out_idx);
+  for (auto& fd : fds) close(fd);
+  close(fd_output);
   delete_temps(chunks);
 }
 

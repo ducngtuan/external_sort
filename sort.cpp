@@ -16,7 +16,7 @@ void verify(char *input) {
   bool failed = false;
   read(fd_input, &last, sizeof(uint64_t));
   while (read(fd_input, &curr, sizeof(uint64_t)) > 0) {
-    if (curr < last)
+    if (curr <= last)
       failed = true;
     last = curr;
     ++count;
