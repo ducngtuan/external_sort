@@ -1,7 +1,7 @@
 #ifndef EXTERNAL_SORT_H
 #define EXTERNAL_SORT_H
 
-void externalSort(int fdInput, unsigned long size,
-                  int fdOutput, unsigned long memSize);
+void externalSort(const int fd_input, const unsigned long size,
+                  const int fd_output, const unsigned long mem_size);
 
 #endif // EXTERNAL_SORT_H

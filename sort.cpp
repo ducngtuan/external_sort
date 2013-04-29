@@ -36,11 +36,22 @@ int main(int argc, char** argv) {
   }
 
   int fd_input = open(argv[1], O_RDONLY);
-  int fd_output = open(argv[2], O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
-  int n = atoi(argv[3]);
+  if (fd_input == -1) {
+    std::cerr << "Cannot open input file '" << argv[1] << "' - "
+              << strerror(errno) << std::endl;
+    return -1;
+  }
 
+  int fd_output = open(argv[2], O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+  if (fd_output == -1) {
+    std::cerr << "Cannot open output file '" << argv[2] << "' - "
+              << strerror(errno) << std::endl;
+    return -1;
+  }
+
+  int n = atoi(argv[3]);
   if (n == 0) {
-    std::cerr << "Invalid size for memory buffer: " << argv[2] << std::endl;
+    std::cerr << "Invalid size for memory buffer: " << argv[3] << std::endl;
     return -1;
   }
 

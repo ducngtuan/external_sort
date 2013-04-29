@@ -35,7 +35,7 @@ public:
 // Utility functions
 bool preallocate_file(int fd, off_t offset = 0, off_t len = 0);
 
-void delete_temps(const std::vector<std::string>& tempfiles);
+void delete_files(const std::vector<std::string>& tempfiles);
 
 std::vector<std::string> split_file(const int fd_input,
                                     const unsigned long chunk_size);
@@ -59,19 +59,19 @@ void flush_buffer(const int fd, const std::unique_ptr<uint64_t[]> &buffer,
 ///
 /// K-way merge external sort
 ///
-/// \param fdInput  descriptor of input file
-/// \param size     total number of integers
-/// \param fdOutput descriptor of output file
-/// \param memSize  size of main memory in bytes
+/// \param fd_input  descriptor of input file
+/// \param size      total number of integers
+/// \param fd_output descriptor of output file
+/// \param mem_size  size of main memory in bytes
 ///
-void externalSort(int fdInput, unsigned long size,
-                  int fdOutput, unsigned long memSize) {
-  auto chunk_len = memSize / sizeof(uint64_t);
-  auto chunks = split_file(fdInput, chunk_len);
+void externalSort(const int fd_input, const unsigned long size,
+                  const int fd_output, const unsigned long mem_size) {
+  auto chunk_len = mem_size / sizeof(uint64_t);
+  auto chunks = split_file(fd_input, chunk_len);
 
-  preallocate_file(fdOutput, 0, size * sizeof(uint64_t));
+  preallocate_file(fd_output, 0, size * sizeof(uint64_t));
 
-  merge_multi_pass(chunks, fdOutput, chunk_len * sizeof(uint64_t), memSize);
+  merge_multi_pass(chunks, fd_output, chunk_len * sizeof(uint64_t), mem_size);
 }
 
 ///
@@ -162,7 +162,7 @@ void merge_multi_pass(std::vector<std::string>& chunks,
 }
 
 ///
-/// Merge all the chunks to the output file, in one pass.
+/// Merge all the chunks to the output file, all together in one pass.
 ///
 /// \param chunks     list of filename of the chunks
 /// \param fd_output  file descriptor of the output file
@@ -192,10 +192,10 @@ void merge_one_pass(const std::vector<std::string>& chunks,
   for (size_t i = 0; i != chunks.size(); ++i)
     fill_buffer(fds[i], in_buffers[i], buffer_size, max_idx[i], idx[i]);
 
+  // create and fill priority queue with one item from each buffer
   std::priority_queue<std::pair<uint64_t, size_t>,
       std::vector<std::pair<uint64_t, size_t>>,
       PairCompare> queue;
-  // fill queue with one item from each buffer
   for (size_t i = 0; i != in_buffers.size(); ++i)
     queue.push(std::make_pair(in_buffers[i][idx[i]++], i));
 
@@ -215,14 +215,16 @@ void merge_one_pass(const std::vector<std::string>& chunks,
 
     if (idx[i] == max_idx[i])
       fill_buffer(fds[i], in_buffers[i], buffer_size, max_idx[i], idx[i]);
-    if (idx[i] == max_idx[i]) continue;
+    if (idx[i] == max_idx[i]) continue; // nothing more to read from the chunk
 
     queue.push(std::make_pair(in_buffers[i][idx[i]++], i));
   }
   flush_buffer(fd_output, out_buffer, out_idx);
-  for (auto& fd : fds) close(fd);
   close(fd_output);
-  delete_temps(chunks);
+
+  for (auto& fd : fds)
+    close(fd);
+  delete_files(chunks);
 }
 
 ///
@@ -266,10 +268,11 @@ void flush_buffer(const int fd, const std::unique_ptr<uint64_t[]>& buffer,
 /// \param fd     file descriptor
 /// \param offset starting position
 /// \param len    number of bytes since the offset
-/// \return `true` on success, else `false`
+/// \return true on success
 ///
 bool preallocate_file(int fd, off_t offset, off_t len) {
   bool success = false;
+
 #ifdef __linux__
   success = 0 == fallocate(fd, FALLOC_FL_KEEP_SIZE, offset, len);
 #elif _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112
@@ -286,14 +289,14 @@ bool preallocate_file(int fd, off_t offset, off_t len) {
 }
 
 ///
-/// Delete all temporary file in the given list
+/// Delete all files in the given list
 ///
-/// \param tempfiles list of the name of files to be removed
+/// \param files list of the name of files to be removed
 ///
-void delete_temps(const std::vector<std::string>& tempfiles) {
-  for (auto& temp : tempfiles) {
-    if (remove(temp.c_str()) != 0) {
-      std::cerr << "Error: cannot remove file '" << temp << "' - "
+void delete_files(const std::vector<std::string>& files) {
+  for (auto& file : files) {
+    if (remove(file.c_str()) != 0) {
+      std::cerr << "Error: cannot remove file '" << file << "' - "
                 << strerror(errno) << std::endl;
     }
   }
