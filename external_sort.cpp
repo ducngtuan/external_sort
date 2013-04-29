@@ -20,17 +20,6 @@
   #include <linux/falloc.h>
 #endif
 
-///
-/// Custom compare class to use in the priority queue. This implementation
-/// makes sure the queue in reverse order (min element at top).
-///
-class PairCompare {
-public:
-  bool operator()(const std::pair<uint64_t, size_t>& lhs,
-                  const std::pair<uint64_t, size_t>& rhs) {
-    return lhs.first > rhs.first;
-  }
-};
 
 // Utility functions
 bool preallocate_file(int fd, off_t offset = 0, off_t len = 0);
@@ -195,7 +184,7 @@ void merge_one_pass(const std::vector<std::string>& chunks,
   // create and fill priority queue with one item from each buffer
   std::priority_queue<std::pair<uint64_t, size_t>,
       std::vector<std::pair<uint64_t, size_t>>,
-      PairCompare> queue;
+      std::greater<std::pair<uint64_t, size_t>>> queue;
   for (size_t i = 0; i != in_buffers.size(); ++i)
     queue.push(std::make_pair(in_buffers[i][idx[i]++], i));
 
