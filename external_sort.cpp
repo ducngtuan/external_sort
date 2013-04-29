@@ -37,7 +37,7 @@ void merge_multi_pass(std::vector<std::string>& chunks,
                       const int fd_output,
                       size_t chunk_size,
                       const unsigned long mem_size,
-                      const int max_chunk_num = 25);
+                      const unsigned int max_chunk_num = 25);
 
 void fill_buffer(const int fd, const std::unique_ptr<uint64_t[]> &buffer,
                  const size_t buffer_size, size_t &max_idx, size_t &idx);
@@ -116,7 +116,7 @@ void merge_multi_pass(std::vector<std::string>& chunks,
                       const int fd_output,
                       size_t chunk_size,
                       const unsigned long mem_size,
-                      const int max_chunk_num) {
+                      const unsigned int max_chunk_num) {
   while (!chunks.empty()) {
     // if all chunks fit in
     if (chunks.size() <= max_chunk_num) {

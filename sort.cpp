@@ -1,6 +1,9 @@
 #include <iostream>
 
 #include <cstdint>
+#include <cstring>
+#include <cerrno>
+
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
