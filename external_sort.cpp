@@ -84,7 +84,7 @@ std::vector<std::string> split_file(const int fd_input,
     // sort the buffer
     std::sort(&buffer[0], &buffer[0] + len/sizeof(uint64_t));
 
-    // write buffer to temporal output file
+    // write buffer to temporary output file
     char temp[] = "esort.tmp.XXXXXX";
     int fd_temp = mkstemp(temp);
     if (fd_temp == -1) {
@@ -131,7 +131,7 @@ void merge_multi_pass(std::vector<std::string>& chunks,
       if (ite > chunks.end()) ite = chunks.end();
       std::vector<std::string> sub_chunks(it, ite);
 
-      // write buffer to temporal output file
+      // write buffer to temporary output file
       char temp[] = "esort.tmp.XXXXXX";
       int fd_temp = mkstemp(temp);
       if (fd_temp == -1) {
